@@ -7,9 +7,8 @@
     {
       "name": "bakedbrie",
       "source": {
-        "source": "url",
-        "url": "https://github.com/sashakucharczyk/bakedbrie-plugin.git",
-        "ref": "main"
+        "source": "local",
+        "path": "./"
       },
       "policy": {
         "installation": "AVAILABLE",
