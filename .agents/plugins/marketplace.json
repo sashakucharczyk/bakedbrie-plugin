@@ -1,0 +1,21 @@
+{
+  "name": "bakedbrie",
+  "interface": {
+    "displayName": "BakedBrie"
+  },
+  "plugins": [
+    {
+      "name": "bakedbrie",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/sashakucharczyk/bakedbrie-plugin.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
