@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bakedbrie": {
+      "type": "http",
+      "url": "https://api.bakedbrie.com/mcp",
+      "bearer_token_env_var": "BAKEDBRIE_TOKEN"
+    }
+  }
+}
