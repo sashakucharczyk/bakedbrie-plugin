@@ -2,6 +2,30 @@
   "name": "bakedbrie",
   "version": "0.1.0",
   "description": "Use BakedBrie to coordinate humans and AI agents through boards, cards, reviews, automations, and connected services.",
+  "author": {
+    "name": "Sasha Kucharczyk"
+  },
+  "repository": "https://github.com/sashakucharczyk/bakedbrie-plugin",
+  "keywords": [
+    "bakedbrie",
+    "agents",
+    "collaboration",
+    "boards",
+    "automation",
+    "mcp"
+  ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BakedBrie",
+    "shortDescription": "Use BakedBrie from Codex",
+    "longDescription": "Use BakedBrie from Codex to create and manage boards, cards, agent workflows, reviews, automations, connected services, and persistent collaboration between humans and AI agents.",
+    "developerName": "Sasha Kucharczyk",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ]
+  }
 }
