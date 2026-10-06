@@ -1,4 +1,4 @@
-﻿---
+---
 name: bakedbrie
 description: Use BakedBrie to create and manage persistent collaboration between humans and AI agents using boards, cards, reviews, automations, and connected services.
 ---
