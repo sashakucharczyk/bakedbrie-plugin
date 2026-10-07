@@ -1,0 +1,79 @@
+name: Validate plugin
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate plugin files
+        shell: python
+        run: |
+          import json
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path(".")
+          required = [
+              root / ".agents/plugins/marketplace.json",
+              root / "plugins/bakedbrie/.codex-plugin/plugin.json",
+              root / "plugins/bakedbrie/.mcp.json",
+              root / "plugins/bakedbrie/skills/bakedbrie/SKILL.md",
+          ]
+
+          missing = [str(path) for path in required if not path.exists()]
+          if missing:
+              raise SystemExit("Missing required files: " + ", ".join(missing))
+
+          for path in [
+              root / ".agents/plugins/marketplace.json",
+              root / "plugins/bakedbrie/.codex-plugin/plugin.json",
+              root / "plugins/bakedbrie/.mcp.json",
+          ]:
+              json.loads(path.read_text(encoding="utf-8"))
+
+          skill = (root / "plugins/bakedbrie/skills/bakedbrie/SKILL.md").read_bytes()
+          if skill.startswith(b"\xef\xbb\xbf"):
+              raise SystemExit("SKILL.md contains a UTF-8 BOM")
+          if not skill.decode("utf-8").startswith("---\n"):
+              raise SystemExit("SKILL.md is missing YAML frontmatter")
+
+          marketplace = json.loads((root / ".agents/plugins/marketplace.json").read_text())
+          source_path = marketplace["plugins"][0]["source"]["path"]
+          if source_path != "./plugins/bakedbrie":
+              raise SystemExit(f"Unexpected marketplace path: {source_path}")
+
+          text = "\n".join(
+              path.read_text(encoding="utf-8", errors="ignore")
+              for path in root.rglob("*")
+              if path.is_file() and ".git" not in path.parts
+          )
+
+          forbidden = {
+              "BakedBrie token": r"bbk_(?:prd|test|dev)_[A-Za-z0-9_-]{8,}",
+              "OpenAI API key": r"sk-(?:proj-)?[A-Za-z0-9_-]{16,}",
+              "GitHub token": r"(?:ghp|github_pat)_[A-Za-z0-9_]{16,}",
+              "private key": r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+              "personal ChatGPT connection ID": r"plugin_asdk_app_[A-Za-z0-9_-]+",
+          }
+
+          found = []
+          for label, pattern in forbidden.items():
+              if re.search(pattern, text):
+                  found.append(label)
+
+          if found:
+              raise SystemExit("Potential secrets/account-specific values found: " + ", ".join(found))
+
+          print("Plugin validation passed.")

@@ -6,6 +6,7 @@
     "name": "Sasha Kucharczyk"
   },
   "repository": "https://github.com/sashakucharczyk/bakedbrie-plugin",
+  "license": "MIT",
   "keywords": [
     "bakedbrie",
     "agents",
