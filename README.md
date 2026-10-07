@@ -1,58 +1,33 @@
 # BakedBrie Plugin for ChatGPT and Codex
 
-An unofficial plugin for using [BakedBrie](https://bakedbrie.com/) from Codex and, with an additional remote MCP bridge, the ChatGPT UI.
+An unofficial, community-maintained plugin for using [BakedBrie](https://bakedbrie.com/) with Codex and, with an additional authenticated remote MCP bridge, ChatGPT.
 
 Developed by Sasha Kucharczyk.
 
-> **Status:** The direct BakedBrie MCP integration has been tested successfully in Codex. ChatGPT requires an additional remote MCP/OAuth layer because BakedBrie's current MCP authentication uses a bearer token rather than the OAuth flow ChatGPT expects for authenticated custom MCP servers.
+> **Project status:** early public release (`0.1.0`). The direct BakedBrie MCP integration has been tested successfully in Codex. BakedBrie's current MCP authentication uses a bearer token, so ChatGPT requires an OAuth-capable remote bridge for account-specific access and write actions.
 
-## What this plugin does
+## What this plugin provides
 
-The plugin combines:
+- A BakedBrie skill with safe, repeatable workflow guidance.
+- A direct MCP connection to `https://api.bakedbrie.com/mcp` for Codex.
+- A repo marketplace entry for easy installation and testing.
+- Documentation for a personal OAuth bridge when using BakedBrie from ChatGPT.
 
-- a BakedBrie skill that gives the model safe, repeatable workflow guidance;
-- BakedBrie's existing MCP endpoint at `https://api.bakedbrie.com/mcp`;
-- a Git-backed plugin marketplace for installation in Codex and ChatGPT Desktop;
-- optional personal remote-MCP wiring for using BakedBrie tools from the normal ChatGPT UI.
+The plugin does **not** reimplement BakedBrie. Available tools and behavior are determined by BakedBrie's MCP server.
 
-The plugin does not reimplement BakedBrie. The available tools and behavior ultimately depend on BakedBrie's MCP server.
+## Requirements
 
-## Repository structure
+For the direct Codex path:
 
-The installable plugin package is intentionally kept in one canonical location:
+- a BakedBrie account;
+- a BakedBrie API token;
+- Codex with plugin support;
+- `BAKEDBRIE_TOKEN` set in the local environment.
 
-```text
-.agents/
-└── plugins/
-    └── marketplace.json
+For ChatGPT:
 
-plugins/
-└── bakedbrie/
-    ├── .codex-plugin/
-    │   └── plugin.json
-    ├── .mcp.json
-    └── skills/
-        └── bakedbrie/
-            └── SKILL.md
-```
-
-`.agents/plugins/marketplace.json` points to `./plugins/bakedbrie`.
-
-## Codex architecture
-
-Codex can use BakedBrie's bearer-token authentication directly:
-
-```text
-Codex
-  ↓
-BakedBrie plugin
-  ↓
-BAKEDBRIE_TOKEN environment variable
-  ↓
-https://api.bakedbrie.com/mcp
-```
-
-The token stays outside the repository.
+- a stable HTTPS MCP endpoint that ChatGPT can reach; and
+- OAuth-compatible authentication between ChatGPT and that endpoint.
 
 ## Install in Codex
 
@@ -60,7 +35,7 @@ The token stays outside the repository.
 
 Create an API token in BakedBrie.
 
-Do not paste the token into an AI conversation or commit it to Git.
+Do not paste the token into an AI conversation, source file, issue, pull request, or Git commit.
 
 ### 2. Set `BAKEDBRIE_TOKEN`
 
@@ -70,7 +45,7 @@ Windows PowerShell, current session:
 $env:BAKEDBRIE_TOKEN = "<your-bakedbrie-token>"
 ```
 
-To persist it for your Windows user:
+Persist it for your Windows user:
 
 ```powershell
 [Environment]::SetEnvironmentVariable(
@@ -86,7 +61,7 @@ macOS/Linux:
 export BAKEDBRIE_TOKEN="<your-bakedbrie-token>"
 ```
 
-Restart applications that were already running after setting the variable.
+Restart applications that were already running after changing the environment.
 
 ### 3. Add the marketplace
 
@@ -100,13 +75,13 @@ codex plugin marketplace add sashakucharczyk/bakedbrie-plugin --ref main
 codex plugin list --marketplace bakedbrie --available --json
 ```
 
-### 5. Install it
+### 5. Install the plugin
 
 ```bash
 codex plugin add bakedbrie@bakedbrie
 ```
 
-### 6. Run a read-only connection test
+### 6. Test read-only access first
 
 Start a fresh Codex session and ask:
 
@@ -123,13 +98,15 @@ Tell me only:
 Do not create or modify anything.
 ```
 
-## ChatGPT UI: why extra setup is needed
+Only test write actions after identity, workspace, and permissions are correct.
 
-The checked-in `.mcp.json` is designed for Codex and references the local `BAKEDBRIE_TOKEN` environment variable.
+## Using BakedBrie from ChatGPT
 
-ChatGPT custom MCP connections support authenticated remote MCP servers through OAuth. ChatGPT cannot simply read a local Windows/macOS environment variable or present an arbitrary user-supplied BakedBrie API key to the upstream server.
+The checked-in MCP configuration is designed for Codex and references the local `BAKEDBRIE_TOKEN` environment variable.
 
-For personal use, the practical architecture is:
+ChatGPT supports authenticated remote MCP servers through OAuth. It cannot simply inherit a local machine's BakedBrie bearer token.
+
+For personal use, the practical pattern is:
 
 ```text
 ChatGPT
@@ -139,83 +116,62 @@ Personal remote MCP bridge
 https://api.bakedbrie.com/mcp
 ```
 
-A small Cloudflare Worker is a convenient way to host that bridge.
-
-OpenAI references:
-
-- https://developers.openai.com/api/docs/guides/custom-mcp-server
-- https://developers.openai.com/plugins/build/auth
-- https://developers.openai.com/plugins/build/plugins
-
-Cloudflare reference:
-
-- https://developers.cloudflare.com/agents/model-context-protocol/guides/remote-mcp-server/
-
-## Personal Cloudflare bridge
-
-This repository does **not** contain a personal Worker deployment, OAuth credentials, or a ChatGPT MCP connection ID.
-
-For a personal bridge, the Worker should:
+Cloudflare Workers is one reasonable way to host that bridge. The bridge should:
 
 1. expose a Streamable HTTP MCP endpoint, normally ending in `/mcp`;
-2. implement an OAuth-compatible authentication flow for ChatGPT;
+2. implement an OAuth-compatible authentication flow;
 3. restrict access to the intended user;
-4. store `BAKEDBRIE_TOKEN` as a Cloudflare secret;
-5. forward authorized MCP requests to `https://api.bakedbrie.com/mcp`;
-6. never return, log, or expose the upstream BakedBrie token.
+4. store `BAKEDBRIE_TOKEN` as a deployment secret;
+5. forward authorized MCP requests to BakedBrie;
+6. never return or log the upstream token.
 
-### Store the BakedBrie token
-
-From the Worker project:
+For Cloudflare, store the BakedBrie token with:
 
 ```bash
 npx wrangler secret put BAKEDBRIE_TOKEN
 ```
 
-Enter the token only when Wrangler prompts for it.
+Then connect the deployed HTTPS `/mcp` endpoint through **ChatGPT → Plugins → Create custom MCP server**, complete OAuth, install the resulting plugin, and test `whoami` before any write operation.
 
-Do not place the value in source code, `wrangler.jsonc`, committed environment files, logs, or this repository.
+Useful references:
 
-If the bridge uses OAuth client credentials or a cookie-encryption key, store those with `wrangler secret put` as well.
+- OpenAI custom MCP server: https://developers.openai.com/api/docs/guides/custom-mcp-server
+- OpenAI plugin authentication: https://developers.openai.com/plugins/build/auth
+- OpenAI plugin packaging: https://developers.openai.com/plugins/build/plugins
+- Cloudflare remote MCP servers: https://developers.cloudflare.com/agents/model-context-protocol/guides/remote-mcp-server/
 
-### Connect the bridge to ChatGPT
+### Why this repo does not yet use the portable Agent Plugins MCP format
 
-After deploying the Worker:
+OpenAI now recommends the portable Agent Plugins layout for new packages. That format intentionally does not provide a portable secret-reference field for authenticated remote HTTP MCP servers; authorization is client-managed.
 
-1. In ChatGPT, open **Plugins**.
-2. Select **Add/Create custom MCP server**.
-3. Enter the deployed HTTPS endpoint ending in `/mcp`.
-4. Configure/complete OAuth authentication.
-5. Review the risk warning and create the connection as a plugin.
-6. Install it and test it in a new conversation.
+BakedBrie's current direct integration depends on `bearer_token_env_var`, which is supported by the Codex compatibility MCP format used here. Migrating this repo to portable `plugin.json` / `mcp.json` before BakedBrie offers OAuth-compatible authorization would remove the working credential path.
 
-For the first test, call BakedBrie's `whoami` tool and do not perform writes.
+The compatibility package remains supported. A portable migration should happen when BakedBrie provides native MCP OAuth or when a suitable per-user authenticated bridge becomes the canonical endpoint.
 
-### Combine the ChatGPT connection with this skill
+## Repository structure
 
-If you want the ChatGPT connection and this repository's BakedBrie skill to appear as one local plugin:
+```text
+.agents/
+└── plugins/
+    └── marketplace.json
 
-1. create the custom MCP connection in ChatGPT;
-2. copy its technical connection ID;
-3. use OpenAI Plugin Creator to wire that registered connection into a local copy of `plugins/bakedbrie`;
-4. let Plugin Creator create the local `.app.json` and update the local manifest to reference it;
-5. reinstall/refresh the plugin in ChatGPT Desktop.
+plugins/
+└── bakedbrie/
+    ├── .codex-plugin/
+    │   └── plugin.json
+    ├── .mcp.json
+    └── skills/
+        └── bakedbrie/
+            └── SKILL.md
+```
 
-The technical connection ID and resulting `.app.json` are account-specific. They are intentionally excluded from this repository.
-
-Do not modify the checked-in manifest to reference a missing personal `.app.json`; keep the account-specific ChatGPT wiring local.
+The marketplace points to `./plugins/bakedbrie`. That directory is the canonical installable package.
 
 ## Security and privacy
 
-Never commit credentials.
+Never commit credentials or account-specific connection data.
 
-The repository may contain the environment-variable name:
-
-```text
-BAKEDBRIE_TOKEN
-```
-
-It must never contain its value.
+The repository may contain the **name** `BAKEDBRIE_TOKEN`; it must never contain its value.
 
 The repository ignores common local secret/configuration files, including:
 
@@ -237,58 +193,29 @@ Keep these out of Git:
 - Cloudflare authentication secrets;
 - cookie-encryption keys;
 - local `.dev.vars`;
-- personal ChatGPT MCP connection IDs or generated `.app.json`;
-- captured MCP responses containing account-specific workspace, board, card, or user data.
+- account-specific ChatGPT MCP connection IDs or generated `.app.json`;
+- captured MCP responses containing private workspace, board, card, or user data.
 
-If a secret is ever committed, deleting it from the latest file is not enough. Rotate it and remove it from Git history.
+If a secret is ever committed, rotate it. Removing it from the latest file does not remove it from Git history.
 
-## Updating the plugin
+For suspected security issues, see [SECURITY.md](SECURITY.md).
 
-After changing the checked-in plugin:
+## Contributing
 
-```bash
-git add .
-git commit -m "Update BakedBrie plugin"
-git push
-```
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Refresh the marketplace:
+Please keep changes small, explain behavior changes clearly, and do not include personal account data or credentials in examples or fixtures.
 
-```bash
-codex plugin marketplace upgrade bakedbrie
-```
+## Versioning
 
-If necessary:
+The current plugin version is `0.1.0`.
 
-```bash
-codex plugin remove bakedbrie@bakedbrie
-codex plugin add bakedbrie@bakedbrie
-```
+Changes are tracked in [CHANGELOG.md](CHANGELOG.md). Releases should use semantic versioning once the public API and installation path stabilize.
 
-Restart ChatGPT Desktop after marketplace or plugin-manifest changes.
+## License
 
-## Important limitations
-
-- This is an unofficial integration and is not maintained by BakedBrie.
-- BakedBrie's MCP API may change independently of this repository.
-- The personal Cloudflare bridge pattern is intended for one user's credentials. It is not a production multi-user credential service.
-- A broadly distributable ChatGPT integration should ultimately use BakedBrie-native OAuth or another secure per-user authorization architecture rather than sharing one upstream bearer token.
-
-## Safe test prompt
-
-```text
-Use BakedBrie.
-
-Call `whoami`.
-
-Tell me only:
-1. whether the BakedBrie connection succeeded,
-2. the workspace name,
-3. my role.
-
-Do not create or modify anything.
-```
+This project is licensed under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-BakedBrie, ChatGPT, Codex, Cloudflare, and other referenced products belong to their respective owners. This repository is an independent integration.
+This is an independent integration. It is not an official BakedBrie, OpenAI, or Cloudflare project. Product names and trademarks belong to their respective owners.

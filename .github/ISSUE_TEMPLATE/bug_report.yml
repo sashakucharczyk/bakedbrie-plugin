@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible problem with the plugin
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include API tokens, OAuth secrets, personal MCP connection IDs, or private BakedBrie data.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Where did the issue occur?
+      options:
+        - Codex CLI
+        - Codex desktop
+        - ChatGPT custom MCP connection
+        - Plugin packaging / marketplace
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Redact account-specific IDs and secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include logs only after removing credentials and private data.
